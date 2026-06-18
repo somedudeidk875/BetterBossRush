@@ -1,0 +1,24 @@
+[h1] First mod I have made, expect bugs! [/h1]
+
+
+I was playing IEOR with HWR and was having fun and all until I got to the boss rush. I know I didn't really have to complete it but I felt like I was missing out if I didn't. I then realized one glaring problem with Calamity's boss rush: it gets [i] really boring [/i], especially with a lot of bosses.
+
+Fighting Tier 1 bosses for the 120th time after dying to the Exo Mechs or something can get really boring. Having to trudge through the same 40 or so bosses just to get to the actual engaging bosses (as in the ones that actual pose a threat to an endgame character) is not fun or exciting. That's why I learned tModLoader to make this mod.
+
+[h3] What this mod (currently) does: [/h3]
+
+[list]
+    [*]Reworks tiers 1 and 2 by making them a "blitz"
+    [*]During tier 1, the player will have to fight 3 bosses at once (usually the pretty easy ones)
+    [*]During tier 2, the player will fight 2 bosses at once
+    [*]The rest of the tiers are unchanged as I felt that the difficult was fine for them
+[/list]
+
+[h3] FAQ [/h3]
+Q: Some mods don't work with this mod!
+A: Currently, I have to add supported mods manually. If you want to see support for another mod, comment the INTERNAL NAME of the mod. Note that you must put the mod that adds the bosses AND the mod that adds the bosses to the boss rush (if they are two different mods).
+
+Q: A boss doesn't work well with this mod!
+A: Make sure the boss is in a supported mod (currently supports the content mods found in IEOR and HWR). If it is, attach the name of said boss and why it doesn't work well, I may have missed a few bosses when making this.
+
+Updates are planned, this is just to see the amount of interest people have in this mod!
