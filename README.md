@@ -8,3 +8,6 @@ Support is currently for the following:\
 
 I made this mod because of how boring the event was. I would die on one of the last bosses in the rush and be forced to start all the way from the beginning and defeat all of the bosses in a slow, tedious, and 1-at-a-time manner. This problem is especially apparent with modpacks like IEOR, where boss rushes with 90+ bosses get dragged on forever and become more repetitive the more you die towards the end of them.
 
+Here is a showcase of the Boss Rush without this mod: https://www.youtube.com/watch?v=mcNOMmLLZbA
+
+Here is a showcase with this mod enabled: https://www.youtube.com/watch?v=GtHZJED-zas
