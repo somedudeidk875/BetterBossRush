@@ -32,6 +32,8 @@ namespace BetterBossRush
             public int BossIndex = -1; 
             public bool IsSpawned = false;
             public int SpawnDelayTimer = 0;
+            public bool HasConfirmedAlive = false;
+            public int ConfirmGraceTimer = 0;
 
             // restores the tracking tracking slot back to its default unassigned state
             public void Reset()
@@ -39,12 +41,18 @@ namespace BetterBossRush
                 BossIndex = -1;
                 IsSpawned = false;
                 SpawnDelayTimer = 0;
+                HasConfirmedAlive = false;
+                ConfirmGraceTimer = 0;
             }
         }
+        
+        //how long to wait for a boss to finish fully spawning before proceeding and giving up the slot (ticks)
+        public const int SpawnConfirmGracePeriod = 600;
 
         // tracks the maximum number of bosses allowed alive at once
-        public static BlitzSlot[] Slots = new BlitzSlot[3] { new BlitzSlot(), new BlitzSlot(), new BlitzSlot() };
-        
+        public static BlitzSlot[] Slots = new BlitzSlot[5] { 
+            new BlitzSlot(), new BlitzSlot(), new BlitzSlot(), new BlitzSlot(), new BlitzSlot() 
+        };        
         // tracking index for the next boss entry waiting to be added to the arena slots
         public static int nextQueuedIndex = -1;
         
@@ -69,6 +77,9 @@ namespace BetterBossRush
         // prevents console text flooding
         private static int logTimer = 0;
 
+        //self explanatory
+        public static List<int> DyingBosses = new List<int>();
+
         private static void SetupExemptionList()
         {
             // clear prior records from the collection
@@ -79,19 +90,25 @@ namespace BetterBossRush
             ExemptionNPCIDs.Add(NPCID.WallofFlesh);
 
             // should be able to find calamity since you need it for this mod but just in case
-            if (ModLoader.TryGetMod("CalamityMod", out Mod calamity))
+            if (ModLoader.TryGetMod("CalamityMod", out Mod calamity) && ModLoader.TryGetMod("InfernalEclipseAPI", out Mod infernalEclipseAPI))
             {
                 if (calamity.TryFind("ProfanedGuardianCommander", out ModNPC profanedGuardianCommander))
                 {
                     ExemptionNPCIDs.Add(profanedGuardianCommander.Type);
                 }
-
+                if (calamity.TryFind("Providence", out ModNPC providence))
+                {
+                    ExemptionNPCIDs.Add(providence.Type);
+                }
+                if (calamity.TryFind("CeaselessVoid", out ModNPC ceaselessVoid))
+                {
+                    ExemptionNPCIDs.Add(ceaselessVoid.Type);
+                }
                 // set the core as the actual boss
                 if (calamity.TryFind("SlimeGodCore", out ModNPC slimeGodCore))
                 {
                     ExemptionNPCIDs.Add(slimeGodCore.Type);
                 }
-
                 // tell the queue to skip the paladins so they don't take up slots
                 if (calamity.TryFind("SlimeGod", out ModNPC ebonianPaladin))
                 {
@@ -109,10 +126,45 @@ namespace BetterBossRush
                 {
                     ExemptionNPCIDs.Add(pharaohsCurse.Type);
                 }
+                if (sots.TryFind("SubspaceSerpentHead", out ModNPC subspaceSerpentHead))
+                {
+                    ExemptionNPCIDs.Add(subspaceSerpentHead.Type);
+                }
+            }
+            
+            if (ModLoader.TryGetMod("ContinentOfJourney", out Mod continentOfJourney))
+            {
+                if (Main.GameModeInfo.IsMasterMode && continentOfJourney.TryFind("TheMaterealizer", out ModNPC theMaterealizer))
+                {
+                    ExemptionNPCIDs.Add(theMaterealizer.Type);                    
+                }
+                if (Main.GameModeInfo.IsMasterMode && continentOfJourney.TryFind("TheOverwatcher", out ModNPC theOverwatcher))
+                {
+                    ExemptionNPCIDs.Add(theOverwatcher.Type);                    
+                }                 
+                if (continentOfJourney.TryFind("WorldsEndEverlastingFallingWhale", out ModNPC worldsEndEverlastingFallingWhale))
+                {
+                    ExemptionNPCIDs.Add(worldsEndEverlastingFallingWhale.Type);
+                }                
             }
 
-            //to find the mod id, the easiest way is to go to client.log and look at the name used when loading the mod, you must use the exact name given
-            //to find the entity id, the mod prints out the boss rush in client.log, you can find the exact id there
+            if (ModLoader.TryGetMod("Clamity", out Mod clamity))
+            {
+                if (clamity.TryFind("WallOfBronze", out ModNPC wallOfBronze))
+                {
+                    ExemptionNPCIDs.Add(wallOfBronze.Type);                    
+                }    
+            }
+
+            if (ModLoader.TryGetMod("NoxusBoss", out Mod noxusBoss))
+            {
+                if (noxusBoss.TryFind("AvatarOfEmptiness", out ModNPC avatarOfEmptiness))
+                {
+                    ExemptionNPCIDs.Add(avatarOfEmptiness.Type);                    
+                }    
+            }
+            // to find the mod id, the easiest way is to go to client.log and look at the name used when loading the mod, you must use the exact name given
+            // to find the entity id, the mod prints out the boss rush in client.log, you can find the exact id there
         }
 
         public override void OnWorldLoad()
@@ -132,6 +184,7 @@ namespace BetterBossRush
             TierStartIndices.Clear();
             TierEndIndices.Clear();
 
+            DyingBosses.Clear();
             SetupExemptionList();
 
             // again, just in case
@@ -175,6 +228,18 @@ namespace BetterBossRush
                     TierEndIndices[currentDetectedTier] = BossRushEvent.Bosses.Count - 1;
                 }
                 
+                //will only progress to the next tier once all bosses from the current tier are dead
+                foreach (KeyValuePair<int, int> tierEnd in TierEndIndices)
+                {
+                    int endBossIndex = tierEnd.Value;
+                    if (endBossIndex >= 0 && endBossIndex < BossRushEvent.Bosses.Count)
+                    {
+                        int endBossEntityID = BossRushEvent.Bosses[endBossIndex].EntityID;
+                        
+                        ExemptionNPCIDs.Add(endBossEntityID);
+                    }
+                }
+
                 // restore default operational stage pointer back to original reference values
                 BossRushEvent.BossRushStage = originalStage; 
 
@@ -199,6 +264,17 @@ namespace BetterBossRush
                 {
                     unifiedWhitelist.AddRange(originalPermittedNPCs[activeBossIndex]);
                 }
+            }
+
+            //add bosses that are currently in their death animation to the whitelist so they are protected
+            for (int i = 0; i < DyingBosses.Count; i++)
+            {
+                int dyingBossIndex = DyingBosses[i];
+                if (originalPermittedNPCs.ContainsKey(dyingBossIndex))
+                {
+                        unifiedWhitelist.AddRange(originalPermittedNPCs[dyingBossIndex]);
+                }
+            
             }
 
             // many mods have this weird thing where certain bosses (notably ones from vanilla) will delete other currently active bosses. this prevents that
@@ -230,14 +306,17 @@ namespace BetterBossRush
         {
             if (ModLoader.HasMod("CalamityMod") && BossRushEvent.BossRushActive)
             {
-                int calTier = BossRushEvent.CurrentTier;
-                if (calTier > 2) 
+                if (!IsTierEnabled(CurrentBlitzTier))
                 {
-                    CurrentBlitzTier = calTier;
+                    int calTier = BossRushEvent.CurrentTier;
+                    if (calTier > CurrentBlitzTier)
+                    {
+                        CurrentBlitzTier = calTier;
+                    }
                 }
 
                 // apply safety overrides 
-                if (CurrentBlitzTier == 1 || CurrentBlitzTier == 2)
+                if (IsTierEnabled(CurrentBlitzTier))
                 {
                     BossRushEvent.BossRushSpawnCountdown = 180; 
                     UpdateUniversalWhitelists(); 
@@ -286,7 +365,7 @@ namespace BetterBossRush
             }
 
             // protective whitelist tracking if handling active phase configurations
-            if (currentTierRuntime == 1 || currentTierRuntime == 2)
+            if (IsTierEnabled(currentTierRuntime))
             {
                 UpdateUniversalWhitelists(); 
             }
@@ -299,24 +378,16 @@ namespace BetterBossRush
             }
 
             // handle allocation and tracking details 
-            if (currentTierRuntime == 1 || currentTierRuntime == 2)
+            if (IsTierEnabled(currentTierRuntime))
             {
                 if (nextQueuedIndex < tierStartIndex) 
                 {
                     nextQueuedIndex = tierStartIndex;
                 }
 
-                int maxSlots = 0;
                 
                 // assigns how many slots each tier gets when spawning a boss
-                if (currentTierRuntime == 1)
-                {
-                    maxSlots = 3;
-                }
-                else
-                {
-                    maxSlots = 2;
-                }
+                int maxSlots = GetSlotsForTier(currentTierRuntime);
 
                 // process active challenge slots and evaluate entity life 
                 for (int i = 0; i < maxSlots; i++)
@@ -325,15 +396,31 @@ namespace BetterBossRush
                     {
                         if (Slots[i].IsSpawned)
                         {
-                            // starts cleanup in slot if target entity is dead
-                            if (!IsBossAlive(Slots[i].BossIndex))
+                            if (IsBossAlive(Slots[i].BossIndex))
                             {
-                                if (Slots[i].BossIndex == endCapIndex)
-                                {
-                                    CurrentBlitzTier++; 
-                                }
+                                // boss has materialized, from now on a "not alive" reading is a real death
+                                Slots[i].HasConfirmedAlive = true;
+                            }
+                            else if (Slots[i].HasConfirmedAlive)
+                            {
+                                // it was confirmed alive earlier and is no longer alive = genuinely dead
                                 Slots[i].Reset();
                             }
+                            else
+                            {
+                                // freshly spawned and not registered yet, this basically holds the slot for an incoming boss that may have a spawn animation
+                                Slots[i].ConfirmGraceTimer--;
+                                if (Slots[i].ConfirmGraceTimer <= 0)
+                                {
+                                    Slots[i].Reset();
+                                }
+                            }
+                        }
+                        else if (IsBossInDeathAnimation(Slots[i].BossIndex) && CurrentBlitzTier <= 2)
+                        {
+                            // move boss to the dying registry so it is still protected but frees the slot
+                            DyingBosses.Add(Slots[i].BossIndex);
+                            Slots[i].Reset();
                         }
                         else
                         {
@@ -342,8 +429,19 @@ namespace BetterBossRush
                             {
                                 SpawnBossSafely(Slots[i].BossIndex);
                                 Slots[i].IsSpawned = true;
+                                Slots[i].HasConfirmedAlive = false;
+                                Slots[i].ConfirmGraceTimer = SpawnConfirmGracePeriod;
                             }
                         }
+                    }
+                }
+
+                for (int i = DyingBosses.Count - 1; i >= 0; i--)
+                {
+                    int dyingIndex = DyingBosses[i];
+                    if (!IsBossAlive(dyingIndex))
+                    {
+                        DyingBosses.RemoveAt(i);
                     }
                 }
 
@@ -399,6 +497,40 @@ namespace BetterBossRush
                                 activeSlotsCount++;
                             }
                         }
+                    }
+                }
+
+                // only advance tier if current tier is fully finished
+                if (nextQueuedIndex > endCapIndex)
+                {
+                    bool arenaEmpty = true;
+                    for (int i = 0; i < Slots.Length; i++)
+                    {
+                        if (Slots[i].BossIndex != -1)
+                        {
+                            arenaEmpty = false;
+                            break;
+                        }
+                    }
+
+                    if (arenaEmpty && DyingBosses.Count == 0)
+                    {
+                        string liveBosses = "";
+                        for (int n = 0; n < Main.maxNPCs; n++)
+                        {
+                            NPC npc = Main.npc[n];
+                            if (npc.active && npc.boss)
+                            {
+                                liveBosses += $"[type={npc.type} name={npc.TypeName} life={npc.life}/{npc.lifeMax}] ";
+                            }
+                        }
+                        if (liveBosses == "")
+                        {
+                            liveBosses = "(none)";
+                        }
+                        Mod.Logger.Info($"[BBR ADVANCE] tier {CurrentBlitzTier} -> {CurrentBlitzTier + 1} | tierStart={tierStartIndex} endCap={endCapIndex} queuePtr={nextQueuedIndex} | live boss-flagged NPCs: {liveBosses}");
+
+                        CurrentBlitzTier++;
                     }
                 }
 
@@ -522,6 +654,16 @@ namespace BetterBossRush
             //debug
             //Main.NewText($"[Better Boss Rush] Spawning Blitz Target: {bossName} (Index {index})", 100, 180, 255);
 
+            // DIAGNOSTIC: record which boss is being spawned, the Calamity tier that boss's index
+            // belongs to, and the blitz tier we currently think we're on. If calTierOfBoss is ever
+            // GREATER than blitzTier, a boss from a later tier is being spawned before the current
+            // tier finished - that is the premature-progression bug, caught at the source.
+            int stageBackupForLog = BossRushEvent.BossRushStage;
+            BossRushEvent.BossRushStage = index;
+            int calTierOfBoss = BossRushEvent.CurrentTier;
+            BossRushEvent.BossRushStage = stageBackupForLog;
+            Mod.Logger.Info($"[BBR SPAWN] {bossName} | index={index} | calTierOfBoss={calTierOfBoss} | blitzTier={CurrentBlitzTier} | queuePtr={nextQueuedIndex}");
+
             try
             {
                 // align environmental environment requirements before generating targets
@@ -608,6 +750,98 @@ namespace BetterBossRush
 
             Mod.Logger.Info("=================================================================================");
         }
+        // checks if a boss is currently playing a death animation by scanning all of its active segments/parts
+        private bool IsBossInDeathAnimation(int bossIndex)
+        {
+            if (bossIndex < 0 || bossIndex >= BossRushEvent.Bosses.Count) 
+            {
+                return false;
+            }
+
+            int mainID = BossRushEvent.Bosses[bossIndex].EntityID;
+            List<int> associatedIDs = new List<int>();
+            associatedIDs.Add(mainID);
+
+            // pull all segments, parts, or subentities related to this boss fight
+            if (originalPermittedNPCs.ContainsKey(bossIndex))
+            {
+                foreach (int subID in originalPermittedNPCs[bossIndex])
+                {
+                    if (!associatedIDs.Contains(subID))
+                    {
+                        associatedIDs.Add(subID);
+                    }
+                }
+            }
+
+            bool anyPartsActive = false;
+
+            // scan every active npc in the world, shouldnt cause perfomance issues
+            for (int i = 0; i < Main.maxNPCs; i++)
+            {
+                NPC npc = Main.npc[i];
+                if (npc.active)
+                {
+                    // if the active npc belongs to this boss (head, body segment, tail, or twin)
+                    if (associatedIDs.Contains(npc.type))
+                    {
+                        anyPartsActive = true;
+                        bool partIsDying = false;
+
+                        // check the exact invincibility and life threshold rules 
+                        if (npc.dontTakeDamage)
+                        {
+                            if (npc.life <= 1)
+                            {
+                                partIsDying = true;
+                            }
+                        }
+
+                        if (npc.life <= 0)
+                        {
+                            partIsDying = true;
+                        }
+
+                        // if even one single active segment or part is still fully fighting, the boss as a whole is not ready to free up its slot yet
+                        if (!partIsDying)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // returns true only if we found active pieces and every single one of them was in a death animation state
+            return anyPartsActive;
+        }
+        public static bool IsTierEnabled(int tier)
+        {
+            var config = ModContent.GetInstance<BetterBossRushConfig>();
+            switch (tier)
+            {
+                case 1: return config.Tier1Blitz;
+                case 2: return config.Tier2Blitz;
+                case 3: return config.Tier3Blitz;
+                case 4: return config.Tier4Blitz;
+                case 5: return config.Tier5Blitz;
+                default: return false;
+            }
+        }
+        
+        //fetches from config
+        public static int GetSlotsForTier(int tier)
+        {
+            var config = ModContent.GetInstance<BetterBossRushConfig>();
+            switch (tier)
+            {
+                case 1: return config.SlotsTier1;
+                case 2: return config.SlotsTier2;
+                case 3: return config.SlotsTier3;
+                case 4: return config.SlotsTier4;
+                case 5: return config.SlotsTier5;
+                default: return 2; // Default fallback
+            }
+        }
     }
 
     // some bosses have different ai that requires some level of acknowledgement in this mod to make the boss rush flow. this class handles that
@@ -631,6 +865,30 @@ namespace BetterBossRush
                         {
                             activeSlotIndex = bIdx;
                             break;
+                        }
+                    }
+                }
+
+                // check if the boss is in the dying registry to keep it protected
+                if (activeSlotIndex == -1)
+                {
+                    for (int i = 0; i < BetterBossRushSystem.DyingBosses.Count; i++)
+                    {
+                        int bIdx = BetterBossRushSystem.DyingBosses[i];
+                        var bossDef = BossRushEvent.Bosses[bIdx];
+                        
+                        if (bossDef.EntityID == npc.type)
+                        {
+                            activeSlotIndex = bIdx;
+                            break;
+                        }
+                        if (bossDef.HostileNPCsToNotDelete != null)
+                        {
+                            if (bossDef.HostileNPCsToNotDelete.Contains(npc.type))
+                            {
+                                activeSlotIndex = bIdx;
+                                break;
+                            }
                         }
                     }
                 }
