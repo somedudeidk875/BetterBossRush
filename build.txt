@@ -1,5 +1,5 @@
 displayName = Better Boss Rush
 author = somedudeidk875
-version = 0.2
+version = 0.5.1
 modReferences = CalamityMod
 weakReferences = InfernalEclipseAPI, RagnarokMod, RevengeancePlus, ThoriumMod, SOTS, Consolaria, ContinentOfJourney, InfernumMode, CatalystMod, NoxusBoss, HypnosMod, CalamityHunt, YouBoss, Clamity, CalamityAddon, FargowiltasSouls, FargowiltasCrossmod
