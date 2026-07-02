@@ -80,6 +80,22 @@ namespace BetterBossRush
         //self explanatory
         public static List<int> DyingBosses = new List<int>();
 
+        //also self explanatory
+        public static int SupremeCalIndex = -1;
+
+
+        public bool checkForTier6()
+        {
+            if(ModLoader.TryGetMod("InfernalEclipseAPI", out Mod infernalEclipseAPI) && (ModLoader.TryGetMod("CalamityHunt", out Mod calamityHunt) || ModLoader.TryGetMod("NoxusBoss", out Mod noxusBoss)))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         private static void SetupExemptionList()
         {
             // clear prior records from the collection
@@ -163,6 +179,14 @@ namespace BetterBossRush
                     ExemptionNPCIDs.Add(avatarOfEmptiness.Type);                    
                 }    
             }
+
+            if(ModLoader.TryGetMod("CatalystMod", out Mod catalystMod))
+            {
+                if(catalystMod.TryFind("Goozma", out ModNPC goozma))
+                {
+                    ExemptionNPCIDs.Add(goozma.Type);
+                }
+            }
             // to find the mod id, the easiest way is to go to client.log and look at the name used when loading the mod, you must use the exact name given
             // to find the entity id, the mod prints out the boss rush in client.log, you can find the exact id there
         }
@@ -226,6 +250,25 @@ namespace BetterBossRush
                 if (currentDetectedTier != -1)
                 {
                     TierEndIndices[currentDetectedTier] = BossRushEvent.Bosses.Count - 1;
+                }
+
+                //IEOR's tier 6 split, dynamic list
+                SupremeCalIndex = GetSupremeCalamitasIndex();
+                if (SupremeCalIndex >= 0
+                    && TierStartIndices.ContainsKey(5)
+                    && TierEndIndices.ContainsKey(5)
+                    && SupremeCalIndex >= TierStartIndices[5]
+                    && SupremeCalIndex < TierEndIndices[5])
+                {
+                    int oldTierFiveEnd = TierEndIndices[5];
+                    TierEndIndices[5] = SupremeCalIndex;        
+                    TierStartIndices[6] = SupremeCalIndex + 1;  
+                    TierEndIndices[6] = oldTierFiveEnd;         
+                }
+                else
+                {
+                    // no Tier 6 this session 
+                    SupremeCalIndex = -1;
                 }
                 
                 //will only progress to the next tier once all bosses from the current tier are dead
@@ -308,12 +351,14 @@ namespace BetterBossRush
             {
                 if (!IsTierEnabled(CurrentBlitzTier))
                 {
-                    int calTier = BossRushEvent.CurrentTier;
+                    // makes it so that even if tier 5 is not a blitz, tier 6 would still be a blitz when enabled
+                    int calTier = GetEffectiveTier(BossRushEvent.BossRushStage, SupremeCalIndex);
                     if (calTier > CurrentBlitzTier)
                     {
                         CurrentBlitzTier = calTier;
                     }
                 }
+
 
                 // apply safety overrides 
                 if (IsTierEnabled(CurrentBlitzTier))
@@ -654,10 +699,8 @@ namespace BetterBossRush
             //debug
             //Main.NewText($"[Better Boss Rush] Spawning Blitz Target: {bossName} (Index {index})", 100, 180, 255);
 
-            // DIAGNOSTIC: record which boss is being spawned, the Calamity tier that boss's index
-            // belongs to, and the blitz tier we currently think we're on. If calTierOfBoss is ever
-            // GREATER than blitzTier, a boss from a later tier is being spawned before the current
-            // tier finished - that is the premature-progression bug, caught at the source.
+            // record which boss is being spawned, the Calamity tier that boss's index, belongs to and the blitz tier the mod currently thinks the player is on. 
+            // if calTierOfBoss > blitzTier, a boss from a later tier is being spawned before the current tier finished
             int stageBackupForLog = BossRushEvent.BossRushStage;
             BossRushEvent.BossRushStage = index;
             int calTierOfBoss = BossRushEvent.CurrentTier;
@@ -707,7 +750,53 @@ namespace BetterBossRush
             Mod.Logger.Info($"[BBR Diagnostics] InternalTier={CurrentBlitzTier}, CalStage={BossRushEvent.BossRushStage}, QueuePtr={nextQueuedIndex}\n{slotData}");
         }
 
-        // ditto
+        private int GetSupremeCalamitasIndex()
+        {
+            if(checkForTier6())
+            {
+                if (!ModContent.TryFind<ModNPC>("CalamityMod/SupremeCalamitas", out ModNPC scal))
+                {
+                    return -1;
+                }
+                return BossRushEvent.Bosses.FindIndex(b => b.EntityID == scal.Type);
+            }
+            else
+            {
+                return -1;
+            }
+        }
+
+        // a boss is tier 6 if it sits after scal
+        private bool IsTier6Index(int index, int supremeCalIndex)
+        {
+            if(checkForTier6())
+            {
+                return supremeCalIndex >= 0 && index > supremeCalIndex;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        // returns the effective tier for a roster index (calamity's own tier (1-5)), except that everything after scal is promoted to tier 6
+        private int GetEffectiveTier(int index, int supremeCalIndex)
+        {
+            // tier 6 promotion 
+            if (IsTier6Index(index, supremeCalIndex))
+            {
+                return 6;
+            }
+
+            // otherwise calamity's own tier (1-5)
+            int originalStageBackup = BossRushEvent.BossRushStage;
+            BossRushEvent.BossRushStage = index;
+            int calTier = BossRushEvent.CurrentTier;
+            BossRushEvent.BossRushStage = originalStageBackup;
+            return calTier;
+        }
+
+        // even more logging stuff
         private void LogBossRushList()
         {
             if (!ModLoader.HasMod("CalamityMod")) 
@@ -715,7 +804,14 @@ namespace BetterBossRush
                 return;
             }
 
+            int supremeCalIndex = GetSupremeCalamitasIndex();
+
             Mod.Logger.Info("=================== BETTER BOSS RUSH: ACTIVE ROSTER ROLL CALL ===================");
+            if(checkForTier6())
+            {
+                Mod.Logger.Info($"Supreme Calamitas roster index (Tier 5/6 boundary): {supremeCalIndex} " +
+                            $"| Tier 6 boss count: {(supremeCalIndex >= 0 ? BossRushEvent.Bosses.Count - 1 - supremeCalIndex : 0)}");
+            }
             
             for (int i = 0; i < BossRushEvent.Bosses.Count; i++)
             {
@@ -745,7 +841,16 @@ namespace BetterBossRush
                 int associatedTier = BossRushEvent.CurrentTier;
                 BossRushEvent.BossRushStage = originalStageBackup;
 
-                Mod.Logger.Info($"Index: {i} | Tier: {associatedTier} | Name: {bossName} | Entity ID: {npcID}");
+                if(checkForTier6())
+                {
+                    int effectiveTier = GetEffectiveTier(i, supremeCalIndex);
+                    string tier6Flag = IsTier6Index(i, supremeCalIndex) ? "  <-- TIER 6" : "";
+                    Mod.Logger.Info($"Index: {i} | CalamityTier: {associatedTier} | EffectiveTier: {effectiveTier} | Name: {bossName} | Entity ID: {npcID}{tier6Flag}");
+                }
+                else
+                {
+                    Mod.Logger.Info($"Index: {i} | Tier: {associatedTier} | Name: {bossName} | Entity ID: {npcID}");
+                } 
             }
 
             Mod.Logger.Info("=================================================================================");
@@ -824,6 +929,7 @@ namespace BetterBossRush
                 case 3: return config.Tier3Blitz;
                 case 4: return config.Tier4Blitz;
                 case 5: return config.Tier5Blitz;
+                case 6: return config.Tier6Blitz;
                 default: return false;
             }
         }
@@ -839,6 +945,7 @@ namespace BetterBossRush
                 case 3: return config.SlotsTier3;
                 case 4: return config.SlotsTier4;
                 case 5: return config.SlotsTier5;
+                case 6: return config.SlotsTier6;
                 default: return 2; // Default fallback
             }
         }

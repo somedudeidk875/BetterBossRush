@@ -12,3 +12,76 @@ Items: {
 			'''
 	}
 }
+
+Configs: {
+	BetterBossRushConfig: {
+		SlotsTier5: {
+			Tooltip: Controls how many bosses can be alive at once during tier 5 (does nothing if this tier's blitz toggle is set to false) (default:2)
+			Label: Slots Tier5
+		}
+
+		SlotsTier4: {
+			Tooltip: Controls how many bosses can be alive at once during tier 4 (does nothing if this tier's blitz toggle is set to false) (default:2)
+			Label: Slots Tier4
+		}
+
+		SlotsTier3: {
+			Tooltip: Controls how many bosses can be alive at once during tier 3 (does nothing if this tier's blitz toggle is set to false) (default:2)
+			Label: Slots Tier3
+		}
+
+		SlotsTier2: {
+			Tooltip: Controls how many bosses can be alive at once during tier 2 (does nothing if this tier's blitz toggle is set to false) (default:2)
+			Label: Slots Tier2
+		}
+
+		SlotsTier1: {
+			Tooltip: Controls how many bosses can be alive at once during tier 1 (does nothing if this tier's blitz toggle is set to false) (default:3)
+			Label: Slots Tier1
+		}
+
+		Headers: {
+			Headers: {
+				SlotSettings: Headers. Slot Settings Header
+				BlitzSettings: Headers. Blitz Settings Header
+			}
+		}
+
+		Tier5Blitz: {
+			Tooltip: Controls whether tier 5 is a blitz (default:false)
+			Label: Tier 5
+		}
+
+		Tier4Blitz: {
+			Tooltip: Controls whether tier 4 is a blitz (default:false)
+			Label: Tier 4
+		}
+
+		Tier3Blitz: {
+			Tooltip: Controls whether tier 3 is a blitz (default:false)
+			Label: Tier 3
+		}
+
+		Tier2Blitz: {
+			Tooltip: Controls whether tier 2 is a blitz (default:true)
+			Label: Tier 2
+		}
+
+		Tier1Blitz: {
+			Tooltip: Controls whether tier 1 is a blitz (default:true)
+			Label: Tier 1
+		}
+
+		DisplayName: Better Boss Rush Config
+
+		Tier6Blitz: {
+			Label: Tier 6
+			Tooltip: Controls whether IEOR's tier 6 is a blitz. Does nothing if IEOR is not enabled (default:false)
+		}
+
+		SlotsTier6: {
+			Label: Slots Tier6
+			Tooltip: Controls how many bosses can be alive at once during IEOR's tier 6 (does nothing if this tier's blitz toggle is set to false and/or IEOR is not enabled) (default:2)
+		}
+	}
+}

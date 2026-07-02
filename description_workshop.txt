@@ -22,7 +22,7 @@ A: Make sure the boss is in a supported mod (currently supports the content mods
 Updates are planned, this is just to see the amount of interest people have in this mod! The current update roadmap is (in this order):
 [list]
     [*]COMPLETED: Initial config update, which will start with a way to decide which tiers are turned into blitzes.
-    [*]Full differentiation between Tier 5 and IEOR's Tier 6. (as the mod currently considers both Tier 5)
+    [*]COMPLETED: Full differentiation between Tier 5 and IEOR's Tier 6. (as the mod currently considers both Tier 5)
     [*]Exemption list made available for change, which will allow the player to select which bosses will always spawn by themselves.
     [*]Different "modes" besides blitz for tiers.
 [/list]

@@ -39,6 +39,12 @@ namespace BetterBossRush
         [Tooltip("Controls whether tier 5 is a blitz (default:false)")]
         public bool Tier5Blitz { get; set; }
 
+        [ReloadRequired]
+        [Label("Tier 6")]
+        [DefaultValue(false)]
+        [Tooltip("Controls whether IEOR's tier 6 is a blitz. Does nothing if IEOR is not enabled (default:false)")]
+        public bool Tier6Blitz { get; set; }
+
         [Header("Headers.SlotSettings")]
 
         [ReloadRequired]
@@ -70,5 +76,11 @@ namespace BetterBossRush
         [DefaultValue(2)]
         [Tooltip("Controls how many bosses can be alive at once during tier 5 (does nothing if this tier's blitz toggle is set to false) (default:2)")]
         public int SlotsTier5 { get; set; }
+
+        [ReloadRequired]
+        [Range(1, 5)]
+        [DefaultValue(2)]
+        [Tooltip("Controls how many bosses can be alive at once during IEOR's tier 6 (does nothing if this tier's blitz toggle is set to false and/or IEOR is not enabled) (default:2)")]
+        public int SlotsTier6 { get; set; }
     }
 }
