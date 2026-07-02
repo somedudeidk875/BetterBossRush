@@ -182,9 +182,9 @@ namespace BetterBossRush
 
             if(ModLoader.TryGetMod("CatalystMod", out Mod catalystMod))
             {
-                if(catalystMod.TryFind("Goozma", out ModNPC goozma))
+                if(catalystMod.TryFind("Astrageldon", out ModNPC astrageldon))
                 {
-                    ExemptionNPCIDs.Add(goozma.Type);
+                    ExemptionNPCIDs.Add(astrageldon.Type);
                 }
             }
             // to find the mod id, the easiest way is to go to client.log and look at the name used when loading the mod, you must use the exact name given
