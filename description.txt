@@ -4,7 +4,7 @@ I was playing IEOR with HWR and was having fun and all until I got to the boss r
 
 Fighting Tier 1 bosses for the 120th time after dying to the Exo Mechs or something can get really boring. Having to trudge through the same 40 or so bosses just to get to the actual engaging bosses (as in the ones that actually pose a threat to an endgame character) is not fun or exciting. I could've made it so that once the player beats a tier, they will always start on the next tier on subsequent attempts, but I felt this took away from the boss rush aspect of the Boss Rush. That's why I learned tModLoader to make this mod as a way to improve the boss rush in a way I see fit for the event.
 
-What this mod (currently) does: 
+What this mod (currently) does by default: 
     *Reworks tiers 1 and 2 by making them a "blitz."
     *During tier 1, the player will have to fight 3 bosses at once. (usually the pretty easy ones)
     *During tier 2, the player will fight 2 bosses at once.
@@ -17,8 +17,23 @@ A: Currently, I have to add supported mods manually. If you want to see support 
 Q: A boss doesn't work well with this mod!
 A: Make sure the boss is in a supported mod (currently supports the content mods found in IEOR, its addons, and Fargo's Souls + DLC). If it is, attach the name of said boss and why it doesn't work well. I may have missed a few bosses when making this.
 
+The current default exemption list is:
+*Wall of Flesh
+*Profaned Guardians (Calamity Mod, only exempt if IEOR is also enabled)
+*Providence (Calamity Mod, only exempt if IEOR is also enabled)
+*Ceaseless Void (Calamity Mod, only exempt if IEOR is also enabled)
+*Slime God (Calamity Mod, only exempt if IEOR is also enabled and will be taken off this list once bugs are fixed)
+*Pharoah's Curse (SOTS)
+*Subspace Serpent (SOTS)
+*The Materializer (Homeward Journey, only exempt if on Master Mode)
+*The Overwatcher (Homeward Journey, only exempt if on Master Mode)
+*World's End Everlasting Falling Whale (Homeward Journey)
+*Wall of Bronze (Cataclysm Mod)
+*Avatar of Emptiness (Calamity: Wrath of the Gods)
+*Astrageldon (Catalyst Mod)
+
 Updates are planned, this is just to see the amount of interest people have in this mod! The current update roadmap is (in this order):
     *COMPLETED: Initial config update, which will start with a way to decide which tiers are turned into blitzes.
     *COMPLETED: Full differentiation between Tier 5 and IEOR's Tier 6. (as the mod currently considers both Tier 5)
-    *Exemption list made available for change, which will allow the player to select which bosses will always spawn by themselves.
+    *COMPLETED: Exemption list made available for change, which will allow the player to select which bosses will always spawn by themselves.
     *Different "modes" besides blitz for tiers.

@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ComponentModel;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
+using Terraria.ModLoader.Config; 
 using CalamityMod.Events;
+using CalamityMod.World;   
 using Microsoft.Xna.Framework;
 
 // notes (will add more as the mod develops):
@@ -96,12 +99,8 @@ namespace BetterBossRush
             }
         }
 
-        private static void SetupExemptionList()
+        private static void AddBuiltInExemptions()
         {
-            // clear prior records from the collection
-            ExemptionNPCIDs.Clear();
-            SubEntitySkipIDs.Clear();
-
             // adds wof to the checkpoint exemption list
             ExemptionNPCIDs.Add(NPCID.WallofFlesh);
 
@@ -190,6 +189,150 @@ namespace BetterBossRush
             // to find the mod id, the easiest way is to go to client.log and look at the name used when loading the mod, you must use the exact name given
             // to find the entity id, the mod prints out the boss rush in client.log, you can find the exact id there
         }
+        
+        // rebuilds the entire exemption set from three sources, in order:
+        //  first, the mod's built in defaults (unless the player disabled them in config)
+        //  second, the player's config, specifically first their removals, then their custom additions,
+        //  each of which may be gated behind a difficulty and/or an installed mod
+        //  lastly, the last boss of every tier, which is always exempt and is deliberately not
+        //  configurable: tier progression depends on the tier's final boss fighting alone.
+        // safe to call any time after the tier map is built, the config calls this from OnChanged so edits take effect immediately without a mod reload.
+        public static void RebuildExemptions()
+        {
+            ExemptionNPCIDs.Clear();
+            SubEntitySkipIDs.Clear();
+
+            BetterBossRushConfig config = ModContent.GetInstance<BetterBossRushConfig>();
+
+            // first, built in defaults
+            if (config == null || config.UseDefaultExemptions)
+            {
+                AddBuiltInExemptions();
+            }
+
+            if (config != null)
+            {
+                // second, defaults the player turned off
+                foreach (NPCDefinition disabled in config.DisabledDefaultExemptions)
+                {
+                    if (disabled != null && disabled.Type > 0)
+                    {
+                        ExemptionNPCIDs.Remove(disabled.Type);
+                    }
+                }
+
+                // second cont, the player's own exemptions, respecting each entry's conditions
+                foreach (ExemptionEntry entry in config.CustomExemptions)
+                {
+                    if (entry == null || entry.Boss == null)
+                    {
+                        continue;
+                    }
+
+                    // a boss from a mod that isnt installed resolves to type 0, so it just gets skipped. players can safely leave entries for optional mods in the list.
+                    int bossType = entry.Boss.Type;
+                    if (bossType <= 0)
+                    {
+                        continue;
+                    }
+
+                    // mod condition (blank = no requirement)
+                    if (!string.IsNullOrWhiteSpace(entry.RequiredMod) && !ModLoader.HasMod(entry.RequiredMod.Trim()))
+                    {
+                        continue;
+                    }
+
+                    // difficulty condition (any = no requirement)
+                    if (!IsDifficultyActive(entry.RequiredDifficulty))
+                    {
+                        continue;
+                    }
+
+                    ExemptionNPCIDs.Add(bossType);
+                }
+            }
+
+            // lastly, every tier's final boss, always exempt and never configurable
+            foreach (KeyValuePair<int, int> tierEnd in TierEndIndices)
+            {
+                int endBossIndex = tierEnd.Value;
+                if (endBossIndex >= 0 && endBossIndex < BossRushEvent.Bosses.Count)
+                {
+                    ExemptionNPCIDs.Add(BossRushEvent.Bosses[endBossIndex].EntityID);
+                }
+            }
+        }
+
+        // prefer this over reading fargo's internal field
+        private static bool IsEternityActive()
+        {
+            if (ModLoader.TryGetMod("FargowiltasSouls", out Mod fargoSouls))
+            {
+                object eternity = fargoSouls.Call("EternityMode");
+                return eternity is bool active && active;
+            }
+            return false;
+        }
+
+        // infernum's officially documented mod call, safely false when infernum isnt installed
+        private static bool IsInfernumActive()
+        {
+            if (ModLoader.TryGetMod("InfernumMode", out Mod infernum))
+            {
+                object infernumActive = infernum.Call("GetInfernumActive");
+                return infernumActive is bool active && active;
+            }
+            return false;
+        }
+
+        private static bool IsMasochistActive()
+        {
+            return IsEternityActive() && Main.GameModeInfo.IsMasterMode;
+        }
+
+        // evaluates a config difficulty condition against the current world.
+        // note that vanilla master also reports as expert, so "expert" means "expert or higher"
+        public static bool IsDifficultyActive(ExemptionDifficulty difficulty)
+        {
+            switch (difficulty)
+            {
+                case ExemptionDifficulty.Any:
+                    return true;
+
+                case ExemptionDifficulty.Expert:
+                    return Main.GameModeInfo.IsExpertMode;
+
+                case ExemptionDifficulty.Master:
+                    return Main.GameModeInfo.IsMasterMode;
+
+                case ExemptionDifficulty.Revengeance:
+                    return CalamityWorld.revenge;
+
+                case ExemptionDifficulty.Death:
+                    return CalamityWorld.death;
+
+                case ExemptionDifficulty.Infernum:
+                    return IsInfernumActive();
+
+                case ExemptionDifficulty.Eternity:
+                    return IsEternityActive();
+
+                case ExemptionDifficulty.Masochist:
+                    return IsMasochistActive();
+
+                case ExemptionDifficulty.EternityRevengeance:
+                    return ModLoader.HasMod("FargowiltasCrossmod") && IsEternityActive() && CalamityWorld.revenge;
+
+                case ExemptionDifficulty.MasochistDeath:
+                    return ModLoader.HasMod("FargowiltasCrossmod") && IsMasochistActive() && CalamityWorld.death;
+
+                case ExemptionDifficulty.Ragnarok:
+                    return ModLoader.HasMod("InfernalEclipseAPI") && Main.GameModeInfo.IsMasterMode && IsInfernumActive();
+
+                default:
+                    return true;
+            }
+        }
 
         public override void OnWorldLoad()
         {
@@ -209,7 +352,10 @@ namespace BetterBossRush
             TierEndIndices.Clear();
 
             DyingBosses.Clear();
-            SetupExemptionList();
+            // exemptions are rebuilt further down, once the tier map exists (the rebuild needs TierEndIndices so it can force every tier's final boss to be exempt)
+            // cleared here so a world without calamity doesn't inherit the previous world's list.
+            ExemptionNPCIDs.Clear();
+            SubEntitySkipIDs.Clear();
 
             // again, just in case
             if (ModLoader.HasMod("CalamityMod"))
@@ -252,7 +398,7 @@ namespace BetterBossRush
                     TierEndIndices[currentDetectedTier] = BossRushEvent.Bosses.Count - 1;
                 }
 
-                //IEOR's tier 6 split, dynamic list
+                // IEOR's tier 6 split, dynamic list
                 SupremeCalIndex = GetSupremeCalamitasIndex();
                 if (SupremeCalIndex >= 0
                     && TierStartIndices.ContainsKey(5)
@@ -271,17 +417,7 @@ namespace BetterBossRush
                     SupremeCalIndex = -1;
                 }
                 
-                //will only progress to the next tier once all bosses from the current tier are dead
-                foreach (KeyValuePair<int, int> tierEnd in TierEndIndices)
-                {
-                    int endBossIndex = tierEnd.Value;
-                    if (endBossIndex >= 0 && endBossIndex < BossRushEvent.Bosses.Count)
-                    {
-                        int endBossEntityID = BossRushEvent.Bosses[endBossIndex].EntityID;
-                        
-                        ExemptionNPCIDs.Add(endBossEntityID);
-                    }
-                }
+                RebuildExemptions();
 
                 // restore default operational stage pointer back to original reference values
                 BossRushEvent.BossRushStage = originalStage; 

@@ -13,6 +13,12 @@
   		<Reference Include="CalamityMod">
     		<HintPath>..\..\ModReader\CalamityMod\CalamityMod.dll</HintPath>
   		</Reference>
+		<Reference Include="tModLoader">
+    		<HintPath>$(MSBuildProgramFiles32)\Steam\steamapps\common\tModLoader\tModLoader.exe</HintPath>
+		</Reference>
+		<Reference Include="Terraria">
+			<HintPath>$(MSBuildProgramFiles32)\Steam\steamapps\common\tModLoader\tModLoader.exe</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>

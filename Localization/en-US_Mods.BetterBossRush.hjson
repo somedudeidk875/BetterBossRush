@@ -42,8 +42,9 @@ Configs: {
 
 		Headers: {
 			Headers: {
-				SlotSettings: Headers. Slot Settings Header
-				BlitzSettings: Headers. Blitz Settings Header
+				SlotSettings: Slot Settings
+				BlitzSettings: Blitz Settings
+				ExemptionSettings: Exemption Settings
 			}
 		}
 
@@ -83,5 +84,128 @@ Configs: {
 			Label: Slots Tier6
 			Tooltip: Controls how many bosses can be alive at once during IEOR's tier 6 (does nothing if this tier's blitz toggle is set to false and/or IEOR is not enabled) (default:2)
 		}
+
+		UseDefaultExemptions: {
+			Label: Use Built-in Exemptions
+			Tooltip:
+				'''
+				Keeps the mod's built-in exemption list (bosses that break the blitz, e.g. ones that teleport you somewhere else, ones that create small arenas, etc).
+				Turn this off to use ONLY your own exemptions below.
+				Since I don't know if there's a way to do this here, a list of the default exemption list is on this mod's workshop page.
+				Note: the last boss of each tier is always exempt no matter what, since tier progression depends on it. (default:true)
+				'''
+		}
+
+		DisabledDefaultExemptions: {
+			Label: Disabled Built-in Exemptions
+			Tooltip:
+				'''
+				Bosses here will NOT be exempt, even if they're one of the mod's built-in exemptions.
+				Use this to un-exempt a single default instead of turning all of them off.
+				Has no effect on the last boss of a tier, which is always exempt.
+				This mod prints out the full list of bosses and their NPC IDs in client.log. There you can easily find the internal NPC you're looking for.
+				'''
+		}
+
+		CustomExemptions: {
+			Label: Custom Exemptions
+			Tooltip:
+				'''
+				Bosses you want fought alone. An exempt boss waits until the arena is clear, then spawns by itself.
+				Each entry can optionally require a difficulty and/or an installed mod; if you set both, BOTH must be true.
+				'''
+		}
+	}
+
+	ExemptionEntry: {
+		Boss: {
+			Label: Boss
+			Tooltip:
+				'''
+				The boss to exempt. Exempt bosses wait until the arena is empty, then spawn alone.
+				Bosses from mods you don't have installed are ignored automatically, so you don't need to worry about them.
+				This mod prints out the full list of bosses and their NPC IDs in client.log. There you can easily find the internal NPC you're looking for.
+				'''
+		}
+
+		RequiredDifficulty: {
+			Label: Only If Difficulty Is
+			Tooltip:
+				'''
+				Only exempt this boss while the chosen difficulty is active.
+				'Any' means no difficulty requirement. (default:Any)
+				'''
+		}
+
+		RequiredMod: {
+			Label: Only If Mod Is Installed
+			Tooltip:
+				'''
+				Only exempt this boss while the given mod is installed.
+				Use the mod's INTERNAL name (e.g. CalamityHunt, NoxusBoss, SOTS) - the name shown in client.log when the mod loads.
+				Leave blank for no mod requirement.
+				'''
+		}
+
+		Tooltip: ""
+	}
+
+	ExemptionDifficulty: {
+		Ragnarok: {
+			Tooltip: ""
+			Label: Ragnarok
+		}
+
+		MasochistDeath: {
+			Tooltip: ""
+			Label: Masochist Death
+		}
+
+		Masochist: {
+			Tooltip: ""
+			Label: Masochist
+		}
+
+		EternityRevengeance: {
+			Tooltip: ""
+			Label: Eternity Revengeance
+		}
+
+		Eternity: {
+			Tooltip: ""
+			Label: Eternity
+		}
+
+		Infernum: {
+			Tooltip: ""
+			Label: Infernum
+		}
+
+		Death: {
+			Tooltip: ""
+			Label: Death
+		}
+
+		Revengeance: {
+			Tooltip: ""
+			Label: Revengeance
+		}
+
+		Master: {
+			Tooltip: ""
+			Label: Master
+		}
+
+		Expert: {
+			Tooltip: ""
+			Label: Expert
+		}
+
+		Any: {
+			Tooltip: ""
+			Label: Any
+		}
+
+		Tooltip: ""
 	}
 }
