@@ -11,3 +11,5 @@ I made this mod because of how boring the event was. I would die on one of the l
 Here is a showcase of the Boss Rush without this mod: https://www.youtube.com/watch?v=mcNOMmLLZbA
 
 Here is a showcase with this mod enabled: https://www.youtube.com/watch?v=GtHZJED-zas
+
+You can install the mod here: https://steamcommunity.com/sharedfiles/filedetails/?id=3736933665
